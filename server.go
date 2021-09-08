@@ -23,25 +23,42 @@ func setupLogOutput() {
 func main() {
 	setupLogOutput()
 	server := gin.New()
-	server.Use(gin.Recovery(), middlewares.Logger(), middlewares.BasicAuth()) // TODO: change logging format
+	server.Use(gin.Recovery(), middlewares.Logger()) // TODO: change logging format
 
-	server.GET("/videos", func(ctx *gin.Context) {
-		ctx.JSON(200, videoController.FindAll())
-	})
+	heathCheck := server.Group("/health")
+	{
+		heathCheck.GET("/ping", func(ctx *gin.Context) {
+			ctx.String(http.StatusOK, "pong")
+		})
+	}
+	apiRoutes := server.Group("/api", middlewares.BasicAuth())
+	{
+		apiRoutes.GET("/videos", func(ctx *gin.Context) {
+			ctx.JSON(200, videoController.FindAll())
+		})
 
-	server.POST("/videos", func(ctx *gin.Context) {
-		err := videoController.Save(ctx)
-		if err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
-		} else {
-			ctx.JSON(http.StatusOK, gin.H{
-				"message": "Video Input is Valid!",
-			})
-		}
+		apiRoutes.POST("/videos", func(ctx *gin.Context) {
+			err := videoController.Save(ctx)
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+			} else {
+				ctx.JSON(http.StatusOK, gin.H{
+					"message": "Video Input is Valid!",
+				})
+			}
 
-	})
+		})
+	}
 
-	server.Run(":8080")
+	// We can set up this env variable from the Elastic Beanstalk Console
+	port := os.Getenv("PORT")
+	// EB forwards requests to port 5000
+	if port == "" {
+		port = "5000"
+	}
+
+
+	server.Run(":" + port)
 }
