@@ -6,10 +6,13 @@ import (
 	"demo/validators"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/go-playground/validator.v9"
+	"strconv"
 )
 
 type VideoController interface {
 	Save(ctx *gin.Context) error
+	Update(ctx *gin.Context) error
+	Delete(ctx *gin.Context) error
 	FindAll() []entity.Video
 }
 
@@ -37,6 +40,47 @@ func (c *controller) Save(ctx *gin.Context) error {
 	c.service.Save(video)
 	return nil
 }
+
+func (c *controller) Update(ctx *gin.Context) error {
+	var video entity.Video
+	err := ctx.ShouldBindJSON(&video)
+	if err != nil {
+		return err
+	}
+
+	id, err := strconv.ParseUint(ctx.Param("id"), 0, 0)
+	if err != nil {
+		return err
+	}
+
+	video.ID = id
+
+	err = c.validate.Struct(video)
+	if err != nil {
+		return err
+	}
+	c.service.Update(video)
+	return nil
+}
+
+func (c *controller) Delete(ctx *gin.Context) error  {
+	var video entity.Video
+	err := ctx.ShouldBindJSON(&video)
+	if err != nil {
+		return err
+	}
+
+	id, err := strconv.ParseUint(ctx.Param("id"), 0, 0)
+	if err != nil {
+		return err
+	}
+
+	video.ID = id
+	c.service.Delete(video)
+	return nil
+}
+
+
 
 func (c *controller) FindAll() []entity.Video {
 	return c.service.FindAll()
